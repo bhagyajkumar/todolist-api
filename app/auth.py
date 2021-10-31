@@ -13,7 +13,7 @@ load_dotenv
 
 SECRET_KEY = os.environ["SECRET_KEY"]
 
-jwt_scheme = APIKeyHeader(name="JWT")
+jwt_scheme = APIKeyHeader(name="Authorization")
 
 router = APIRouter()
 
@@ -29,14 +29,25 @@ class Token(BaseModel):
     token_type: str
 
 
-async def get_current_user(token:str = Depends(jwt_scheme)):
+class RefreshTokenModel(BaseModel):
+    refresh_token: str
+
+
+async def get_current_user(token: str = Depends(jwt_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if token[:7] != "Bearer ":
+        raise HTTPException(
+            status_code=401, detail="please prefix token with `Bearer `")
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token[7:], SECRET_KEY, algorithms=["HS256"])
+        if payload["type"] == "access":
+            raise credentials_exception
         user_id = payload.get("user_id")
         if user_id is None:
             raise credentials_exception
@@ -48,7 +59,6 @@ async def get_current_user(token:str = Depends(jwt_scheme)):
         raise credentials_exception
     except:
         raise credentials_exception
-
 
 
 @router.post("/register")
@@ -69,21 +79,37 @@ async def register_user(data: RegisterModel):
 @router.post("/token", response_model=Token)
 async def login_for_access_token(credentials: RegisterModel):
     user = await User.authenticate_user(credentials.username, credentials.password)
-    print(user)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    print(user)
     access_token = await user.create_access_token(type="access")
     refresh_token = await user.create_access_token(expire_minutes=3200, type="refresh")
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer"
+        "token_type": "Bearer"
     }
+
+
+@router.post("/token/refresh", response_model=Token)
+async def refresh_token(data: RefreshTokenModel):
+    token = data.refresh_token
+    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    if payload["type"] != "refresh":
+        raise HTTPException(401, "token passed is not a refresh token")
+    user_id = payload.get("user_id")
+    user = await User.filter(id=user_id).first()
+    if user:
+        access_token = await user.create_access_token(type="access")
+        refresh_token = await user.create_access_token(expire_minutes=3200, type="refresh")
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "Bearer"
+        }
 
 
 @router.get("/protected")

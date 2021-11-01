@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from .models import User, user_pydantic
 from pydantic import BaseModel
 from .exceptions import UserAlreadyExists
-from fastapi.security import APIKeyHeader
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
 from jose import JWTError
 
@@ -13,9 +13,9 @@ load_dotenv
 
 SECRET_KEY = os.environ["SECRET_KEY"]
 
-jwt_scheme = APIKeyHeader(name="Authorization")
+jwt_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-router = APIRouter()
+router = APIRouter(tags=["auth"])
 
 
 class RegisterModel(BaseModel):
@@ -40,12 +40,12 @@ async def get_current_user(token: str = Depends(jwt_scheme)):
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    if token[:7] != "Bearer ":
-        raise HTTPException(
-            status_code=401, detail="please prefix token with `Bearer `")
+    # if token[:7] != "Bearer ":
+    #     raise HTTPException(
+    #         status_code=401, detail="please prefix token with `Bearer `")
 
     try:
-        payload = jwt.decode(token[7:], SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         if payload["type"] != "access":
             raise credentials_exception
         user_id = payload.get("user_id")
@@ -77,8 +77,8 @@ async def register_user(data: RegisterModel):
 
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(credentials: RegisterModel):
-    user = await User.authenticate_user(credentials.username, credentials.password)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await User.authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -112,6 +112,6 @@ async def refresh_token(data: RefreshTokenModel):
         }
 
 
-@router.get("/protected")
+@router.get("/protected", response_model=user_pydantic)
 async def test(user: User = Depends(get_current_user)):
     return await user_pydantic.from_tortoise_orm(user)

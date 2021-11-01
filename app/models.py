@@ -33,14 +33,14 @@ class User(models.Model):
         return user
 
     async def verify_password(self, password):
-        pwd_context.verify(password, self.password_hash)
+        return pwd_context.verify(password, self.password_hash)
 
     @classmethod
     async def authenticate_user(cls, username, password):
         user = await cls.filter(username=username).first()
         if user is None:
             return False
-        if user.verify_password(password):
+        if await user.verify_password(password):
             return user
         return None
 
@@ -71,5 +71,5 @@ Tortoise.init_models(["app.models"], "models")
 
 user_pydantic = pydantic_model_creator(User, name="user")
 
-Todo_Pydantic = pydantic_model_creator(Todo, name="Todo", include=["id", "user"])
-TodoIn_Pydantic = pydantic_model_creator(Todo, name="TodoIn", exclude_readonly=True, include=["user"])
+Todo_Pydantic = pydantic_model_creator(Todo, name="Todo", include=["id"])
+TodoIn_Pydantic = pydantic_model_creator(Todo, name="TodoIn", exclude_readonly=True, exclude=["user_id"])

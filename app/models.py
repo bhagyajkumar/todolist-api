@@ -3,9 +3,11 @@ import jwt
 from datetime import datetime, timedelta
 from tortoise import fields, models
 from passlib.context import CryptContext
+
 from .exceptions import UserAlreadyExists
 from tortoise.contrib.pydantic import pydantic_model_creator
 from dotenv import load_dotenv
+from tortoise import Tortoise
 
 load_dotenv()
 
@@ -53,7 +55,21 @@ class User(models.Model):
     class PydanticMeta:
         exclude = ["password_hash"]
 
+class Todo(models.Model):
+    id = fields.UUIDField(pk=True)
+    content = fields.CharField(max_length=200)
+    user = fields.ForeignKeyField("models.User", related_name="todos" ,on_delete=fields.CASCADE)
+    is_completed = fields.BooleanField(default=False)
 
+    class PydanticMeta:
+        excluded = ["id"]
+        include = ["content", "is_completed", "user_id"]
+
+
+Tortoise.init_models(["app.models"], "models")
 
 
 user_pydantic = pydantic_model_creator(User, name="user")
+
+Todo_Pydantic = pydantic_model_creator(Todo, name="Todo", include=["id", "user"])
+TodoIn_Pydantic = pydantic_model_creator(Todo, name="TodoIn", exclude_readonly=True, include=["user"])

@@ -46,7 +46,7 @@ async def get_current_user(token: str = Depends(jwt_scheme)):
 
     try:
         payload = jwt.decode(token[7:], SECRET_KEY, algorithms=["HS256"])
-        if payload["type"] == "access":
+        if payload["type"] != "access":
             raise credentials_exception
         user_id = payload.get("user_id")
         if user_id is None:
@@ -85,7 +85,7 @@ async def login_for_access_token(credentials: RegisterModel):
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = await user.create_access_token(type="access")
+    access_token = await user.create_access_token(type="access", expire_minutes=30)
     refresh_token = await user.create_access_token(expire_minutes=3200, type="refresh")
     return {
         "access_token": access_token,

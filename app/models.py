@@ -55,10 +55,12 @@ class User(models.Model):
     class PydanticMeta:
         exclude = ["password_hash"]
 
+
 class Todo(models.Model):
     id = fields.UUIDField(pk=True)
     content = fields.CharField(max_length=200)
-    user = fields.ForeignKeyField("models.User", related_name="todos" ,on_delete=fields.CASCADE)
+    user = fields.ForeignKeyField(
+        "models.User", related_name="todos", on_delete=fields.CASCADE)
     is_completed = fields.BooleanField(default=False)
 
     class PydanticMeta:
@@ -72,4 +74,5 @@ Tortoise.init_models(["app.models"], "models")
 user_pydantic = pydantic_model_creator(User, name="user")
 
 Todo_Pydantic = pydantic_model_creator(Todo, name="Todo", include=["id"])
-TodoIn_Pydantic = pydantic_model_creator(Todo, name="TodoIn", exclude_readonly=True, exclude=["user_id"])
+TodoIn_Pydantic = pydantic_model_creator(
+    Todo, name="TodoIn", exclude_readonly=True, exclude=["user_id"])

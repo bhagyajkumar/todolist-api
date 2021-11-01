@@ -1,0 +1,7 @@
+{
+    "name": "Todo list API",
+    "description": "A todo list apu",
+    "repository": "https://github.com/bhagyajkumar/todolist-api/tree/main",
+    "logo": "",
+    "keywords": ["fastapi", "sample api"]
+  }

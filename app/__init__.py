@@ -10,6 +10,11 @@ app = FastAPI()
 app.include_router(auth.router)
 app.include_router(todo.router)
 
+@app.get("/")
+async def read_main():
+    return {"msg": "Hello World"}
+
+
 register_tortoise(
     app,
     db_url=os.environ.get("DATABASE_URL", "sqlite://db.sqlite3"),

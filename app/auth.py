@@ -61,7 +61,7 @@ async def get_current_user(token: str = Depends(jwt_scheme)):
         raise credentials_exception
 
 
-@router.post("/register")
+@router.post("/register", status_code=201)
 async def register_user(data: RegisterModel):
     username = data.username
     password = data.password

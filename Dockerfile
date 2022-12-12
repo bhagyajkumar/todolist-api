@@ -3,6 +3,8 @@ FROM python:3.9
 ARG SECRET_KEY=560b4ae9522e4c82936efc2b8c310b4e 
 
 WORKDIR /code
+
+ENV SECRET_KEY=thisissupposedtobesecretxd
  
 COPY ./requirements.txt /code/requirements.txt
 
